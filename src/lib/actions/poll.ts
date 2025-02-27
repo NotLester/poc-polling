@@ -82,7 +82,6 @@ export const createPoll = async (payload: {
   }
 };
 
-// New function to create multi-question polls
 export const createPollWithQuestions = async (
   payload: MultiQuestionPollFormData
 ): Promise<void> => {
@@ -94,6 +93,7 @@ export const createPollWithQuestions = async (
     options: q.options,
   }));
 
+  // Call the RPC with parameters in the correct order
   const {data: pollId, error} = await supabase.rpc(
     "create_poll_with_questions",
     {
@@ -131,7 +131,7 @@ export const voteOnQuestion = async (payload: VoteSubmission) => {
 
   return supabase.rpc("vote_on_question", {
     question_id: payload.question_id,
-    option_name: payload.option,
+    option_text: payload.option, // Change this from option_name to option_text
   });
 };
 
