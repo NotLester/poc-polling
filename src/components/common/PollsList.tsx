@@ -10,10 +10,10 @@ type Props = {
   isExpired?: boolean;
 };
 
-const PollsList = ({ polls, isExpired = false }: Props) => {
+const PollsList = ({polls, isExpired = false}: Props) => {
   return (
     <div className="w-full gap-6 mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 grid-flow-dense ">
-      {polls.map((poll) => {
+      {polls.map(poll => {
         const totalVotes = poll?.poll_option?.reduce(
           (acc, curr) => acc + curr?.count,
           0
@@ -38,7 +38,7 @@ const PollsList = ({ polls, isExpired = false }: Props) => {
                 variant="outline"
                 className=" absolute -top-2 -right-2 border-orange-500 text-sm bg-background"
               >
-                {totalVotes} votes
+                {totalVotes} {totalVotes === 1 ? "vote" : "votes"}
               </Badge>
             </Card>
           </Link>

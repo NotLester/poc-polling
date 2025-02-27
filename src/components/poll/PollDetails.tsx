@@ -1,9 +1,11 @@
+"use client";
+
 import dynamic from 'next/dynamic';
 
+import { Badge } from '@/components/ui/badge';
+import { useUser } from '@/hooks/useUser';
 import { isPollActive } from '@/lib/utils';
 import { IPoll } from '@/types';
-
-import { Badge } from '../ui/badge';
 
 // Dynamically import the QRCode component to ensure it only loads on the client side
 const QRCode = dynamic(() => import("./QRCode"), {ssr: false});
@@ -13,6 +15,8 @@ type Props = {
 };
 
 const PollDetails = ({poll}: Props) => {
+  const {data: user, isLoading, error} = useUser();
+
   return (
     <div className="space-y-4 w-full">
       <div className="flex justify-between items-start">
@@ -27,7 +31,7 @@ const PollDetails = ({poll}: Props) => {
       <div className="flex justify-between flex-col md:flex-row lg:flex-row xl:flex-row 2xl:flex-row">
         <h4 className="text-lg">
           <span className="text-muted-foreground">Asked by: </span>
-          {poll?.users?.user_name ?? poll?.users?.email}{" "}
+          {user?.user_metadata?.name}{" "}
           <span className="text-muted-foreground">on </span>
           {new Date(poll.created_at).toLocaleString(undefined, {
             weekday: "short",

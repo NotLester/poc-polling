@@ -1,6 +1,7 @@
 // components/poll/QRCode.tsx
 "use client";
 
+import { UUID } from 'crypto';
 import { QrCode } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import QRCodeReact from 'react-qr-code';
@@ -15,7 +16,7 @@ type QRCodeProps = {
 };
 
 const QRCode = ({pollId}: QRCodeProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   const [pollUrl, setPollUrl] = useState<string>("");
 
   useEffect(() => {
@@ -77,9 +78,9 @@ const QRCode = ({pollId}: QRCodeProps) => {
                 bgColor="#FFFFFF"
               />
             </div>
-            <p className="text-xs text-muted-foreground break-all text-center">
+            {/* <p className="text-xs text-muted-foreground break-all text-center">
               {pollUrl}
-            </p>
+            </p> */}
             <Button onClick={downloadQRCode}>Download QR Code</Button>
           </div>
         </div>
