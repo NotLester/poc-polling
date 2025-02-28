@@ -10,6 +10,8 @@ export default function PollPage() {
   const params = useParams();
   const pollId = params.pollId as unknown as Id<"polls">;
 
+  console.log(pollId);
+
   if (!pollId) {
     notFound();
   }

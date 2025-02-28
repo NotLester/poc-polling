@@ -23,7 +23,7 @@ export const createPoll = mutation({
     const userId = identity.subject;
     const pollId = await ctx.db.insert("polls", {
       title: args.title,
-      endDate: args.endDate,
+      status: "active",
       userId,
       createdAt: new Date().toISOString(),
     });

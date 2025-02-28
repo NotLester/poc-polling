@@ -5,7 +5,7 @@ import { mutation, query } from './_generated/server';
 export const createPoll = mutation({
   args: {
     title: v.string(),
-    endDate: v.string(),
+    status: v.string(),
     questions: v.array(
       v.object({
         text: v.string(),
@@ -23,7 +23,7 @@ export const createPoll = mutation({
     const userId = identity.subject;
     const pollId = await ctx.db.insert("polls", {
       title: args.title,
-      endDate: args.endDate,
+      status: args.status,
       userId,
       createdAt: new Date().toISOString(),
     });
@@ -34,7 +34,7 @@ export const createPoll = mutation({
         pollId,
         text: question.text,
         status: question.status,
-        order: index,
+        order: Number(index),
         createdAt: new Date().toISOString(),
       });
 
@@ -51,6 +51,35 @@ export const createPoll = mutation({
     }
 
     return pollId;
+  },
+});
+
+export const updatePollStatus = mutation({
+  args: {
+    pollId: v.id("polls"),
+    status: v.string(), // "published", "unpublished", or "inactive"
+  },
+  async handler(ctx, args) {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const poll = await ctx.db.get(args.pollId);
+    if (!poll) {
+      throw new Error("Poll not found");
+    }
+
+    // Only poll creator can update status
+    if (poll.userId !== identity.subject) {
+      throw new Error("Not authorized to update poll status");
+    }
+
+    await ctx.db.patch(args.pollId, {
+      status: args.status,
+    });
+
+    return true;
   },
 });
 
@@ -91,20 +120,28 @@ export const updateQuestionStatus = mutation({
 
 export const getActivePolls = query({
   async handler(ctx) {
-    const now = new Date().toISOString();
-    return await ctx.db
-      .query("polls")
-      .filter((q) => q.gt(q.field("endDate"), now))
-      .collect();
-  },
-});
+    const identity = await ctx.auth.getUserIdentity();
 
-export const getExpiredPolls = query({
-  async handler(ctx) {
-    const now = new Date().toISOString();
+    // If user is authenticated, include their unpublished polls
+    if (identity) {
+      return await ctx.db
+        .query("polls")
+        .filter((q) =>
+          q.or(
+            q.eq(q.field("status"), "published"),
+            q.and(
+              q.eq(q.field("userId"), identity.subject),
+              q.neq(q.field("status"), "inactive")
+            )
+          )
+        )
+        .collect();
+    }
+
+    // For unauthenticated users, only show published polls
     return await ctx.db
       .query("polls")
-      .filter((q) => q.lte(q.field("endDate"), now))
+      .filter((q) => q.eq(q.field("status"), "published"))
       .collect();
   },
 });
@@ -117,6 +154,11 @@ export const getPollDetails = query({
     if (!poll) return null;
 
     const isPollCreator = identity?.subject === poll.userId;
+
+    // Only allow access to published polls or if user is the creator
+    if (!isPollCreator && poll.status !== "published") {
+      return null;
+    }
 
     // Get questions, filtered by status for non-creators
     const questions = await ctx.db
@@ -160,6 +202,15 @@ export const vote = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
+    }
+
+    // Check if poll is published
+    const poll = await ctx.db.get(args.pollId);
+    if (!poll) {
+      throw new Error("Poll not found");
+    }
+    if (poll.status !== "published") {
+      throw new Error("This poll is not published");
     }
 
     // Check if question is published

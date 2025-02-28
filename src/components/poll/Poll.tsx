@@ -1,13 +1,13 @@
 "use client";
 
 import { useMutation, useQuery } from 'convex/react';
-import { formatDistanceToNow } from 'date-fns';
 import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
 import { useUser } from '@/hooks/useUser';
 
@@ -22,6 +22,7 @@ export function Poll({ pollId }: PollProps) {
   const { isSignedIn, user } = useUser();
   const poll = useQuery(api.polls.getPollDetails, { pollId });
   const vote = useMutation(api.polls.vote);
+  const updatePollStatus = useMutation(api.polls.updatePollStatus);
   const updateStatus = useMutation(api.polls.updateQuestionStatus);
   const [selectedOptions, setSelectedOptions] = useState<
     Record<string, string>
@@ -31,8 +32,9 @@ export function Poll({ pollId }: PollProps) {
     return <div>Loading...</div>;
   }
 
-  const isExpired = new Date(poll.endDate) <= new Date();
+  const isExpired = poll.status === "inactive";
   const isPollCreator = user?.id === poll.userId;
+  const isPollActive = poll.status === "published";
 
   // Calculate total votes for each question
   const getQuestionTotalVotes = (questionId: Id<"pollQuestions">) => {
@@ -109,15 +111,47 @@ export function Poll({ pollId }: PollProps) {
     }
   };
 
+  // New function to handle poll status toggle
+  const handlePollStatusToggle = async (checked: boolean) => {
+    try {
+      await updatePollStatus({
+        pollId,
+        status: checked ? "published" : "inactive",
+      });
+      toast({
+        title: "Poll status updated",
+        description: `Poll is now ${checked ? "published" : "inactive"}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to update poll status",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl">{poll.title}</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          {isExpired
-            ? `Ended ${formatDistanceToNow(new Date(poll.endDate))} ago`
-            : `Ends ${formatDistanceToNow(new Date(poll.endDate))} from now`}
-        </p>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-2xl">{poll.title}</CardTitle>
+          {isPollCreator && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-muted-foreground">
+                {isPollActive ? "Active" : "Inactive"}
+              </span>
+              <Switch
+                checked={isPollActive}
+                onCheckedChange={handlePollStatusToggle}
+                aria-label="Toggle poll status"
+              />
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {poll.questions.map((question) => {
@@ -138,7 +172,7 @@ export function Poll({ pollId }: PollProps) {
                       onClick={() =>
                         handleStatusChange(
                           question._id,
-                          isPublished ? "inactive" : "published"
+                          isPublished ? "unpublished" : "published"
                         )
                       }
                     >

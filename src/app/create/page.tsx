@@ -28,7 +28,9 @@ export default function CreatePoll() {
   const createPoll = useMutation(api.polls.createPoll);
 
   const [title, setTitle] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [pollStatus, setPollStatus] = useState<
+    "published" | "unpublished" | "inactive"
+  >("unpublished");
   const [questions, setQuestions] = useState<Question[]>([
     { text: "", options: ["", ""], status: "inactive" },
   ]);
@@ -96,15 +98,6 @@ export default function CreatePoll() {
       return;
     }
 
-    if (!endDate) {
-      toast({
-        title: "Error",
-        description: "Please select an end date",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const isValid = questions.every((q) => {
       return (
         q.text.trim() !== "" &&
@@ -126,7 +119,7 @@ export default function CreatePoll() {
     try {
       await createPoll({
         title,
-        endDate: new Date(endDate).toISOString(),
+        status: pollStatus,
         questions: questions.map((q) => ({
           text: q.text,
           options: q.options,
@@ -168,13 +161,22 @@ export default function CreatePoll() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
-              <Input
-                id="endDate"
-                type="datetime-local"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
+              <Label htmlFor="pollStatus">Poll Status</Label>
+              <Select
+                value={pollStatus}
+                onValueChange={(
+                  value: "published" | "unpublished" | "inactive"
+                ) => setPollStatus(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="unpublished">Unpublished</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-4">

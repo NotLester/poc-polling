@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQuery } from 'convex/react';
-import { formatDistanceToNow } from 'date-fns';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 
@@ -32,7 +31,7 @@ export default function PollPage() {
     return <div className="container mx-auto py-10">Loading...</div>;
   }
 
-  const isExpired = new Date(poll.endDate) <= new Date();
+  const isInactive = poll.status === "inactive";
   const isPollCreator = user?.id === poll.userId;
 
   const handleVote = async (questionId: string) => {
@@ -100,9 +99,11 @@ export default function PollPage() {
         <CardHeader>
           <CardTitle>{poll.title}</CardTitle>
           <p className="text-sm text-gray-500">
-            {isExpired
-              ? `Ended ${formatDistanceToNow(new Date(poll.endDate))} ago`
-              : `Ends ${formatDistanceToNow(new Date(poll.endDate))} from now`}
+            <Badge
+              variant={poll.status === "published" ? "default" : "secondary"}
+            >
+              {poll.status}
+            </Badge>
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -112,7 +113,7 @@ export default function PollPage() {
               <div key={question._id} className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium">{question.text}</h3>
-                  {isPollCreator && !isExpired && (
+                  {isPollCreator && !isInactive && (
                     <div className="flex items-center gap-2">
                       <Badge variant={isPublished ? "default" : "secondary"}>
                         {question.status}
@@ -154,7 +155,7 @@ export default function PollPage() {
                         <RadioGroupItem
                           value={option._id}
                           id={option._id}
-                          disabled={isExpired || !isPublished}
+                          disabled={isInactive || !isPublished}
                         />
                         <Label htmlFor={option._id}>
                           {option.text} ({option.votes} votes)
@@ -163,7 +164,7 @@ export default function PollPage() {
                     ))}
                   </RadioGroup>
                 )}
-                {!isExpired && isPublished && (
+                {!isInactive && isPublished && (
                   <Button
                     onClick={() => handleVote(question._id)}
                     disabled={!selectedOptions[question._id]}

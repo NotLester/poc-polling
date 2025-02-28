@@ -25,7 +25,7 @@ export const useGetPoll = (pollId: Id<"polls">) => {
       userVotes: poll.questions.flatMap((q) =>
         q.votes.filter((v) => v.userId === user?.id)
       ),
-      isPollActive: new Date(poll.endDate) > new Date(),
+      isPollActive: poll.status === "published",
     },
   };
 };

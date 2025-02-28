@@ -4,7 +4,7 @@ import { v } from 'convex/values';
 export default defineSchema({
   polls: defineTable({
     title: v.string(),
-    endDate: v.string(),
+    status: v.string(), // "published", "unpublished", or "inactive"
     userId: v.string(),
     createdAt: v.string(),
   }),
