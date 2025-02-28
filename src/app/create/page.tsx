@@ -1,20 +1,24 @@
 "use client";
 
-import { useMutation } from 'convex/react';
-import { Plus, Trash2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import {useMutation} from "convex/react";
+import {Plus, Trash2} from "lucide-react";
+import {useRouter} from "next/navigation";
+import {useState} from "react";
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {Button} from "@/components/ui/button";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import {Input} from "@/components/ui/input";
+import {Label} from "@/components/ui/label";
 import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {useToast} from "@/components/ui/use-toast";
 
-import { api } from '../../../convex/_generated/api';
+import {api} from "../../../convex/_generated/api";
 
 interface Question {
   text: string;
@@ -24,7 +28,7 @@ interface Question {
 
 export default function CreatePoll() {
   const router = useRouter();
-  const { toast } = useToast();
+  const {toast} = useToast();
   const createPoll = useMutation(api.polls.createPoll);
 
   const [title, setTitle] = useState("");
@@ -32,13 +36,13 @@ export default function CreatePoll() {
     "published" | "unpublished" | "inactive"
   >("unpublished");
   const [questions, setQuestions] = useState<Question[]>([
-    { text: "", options: ["", ""], status: "inactive" },
+    {text: "", options: ["", ""], status: "inactive"},
   ]);
 
   const addQuestion = () => {
     setQuestions([
       ...questions,
-      { text: "", options: ["", ""], status: "inactive" },
+      {text: "", options: ["", ""], status: "inactive"},
     ]);
   };
 
@@ -98,11 +102,11 @@ export default function CreatePoll() {
       return;
     }
 
-    const isValid = questions.every((q) => {
+    const isValid = questions.every(q => {
       return (
         q.text.trim() !== "" &&
         q.options.length >= 2 &&
-        q.options.every((o) => o.trim() !== "")
+        q.options.every(o => o.trim() !== "")
       );
     });
 
@@ -120,7 +124,7 @@ export default function CreatePoll() {
       await createPoll({
         title,
         status: pollStatus,
-        questions: questions.map((q) => ({
+        questions: questions.map(q => ({
           text: q.text,
           options: q.options,
           status: q.status,
@@ -155,7 +159,7 @@ export default function CreatePoll() {
               <Input
                 id="title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={e => setTitle(e.target.value)}
                 placeholder="Enter poll title"
               />
             </div>
@@ -188,7 +192,7 @@ export default function CreatePoll() {
                         <Label>Question {qIndex + 1}</Label>
                         <Input
                           value={question.text}
-                          onChange={(e) =>
+                          onChange={e =>
                             updateQuestionText(qIndex, e.target.value)
                           }
                           placeholder="Enter your question"
@@ -234,7 +238,7 @@ export default function CreatePoll() {
                         <div key={oIndex} className="flex items-center gap-2">
                           <Input
                             value={option}
-                            onChange={(e) =>
+                            onChange={e =>
                               updateOptionText(qIndex, oIndex, e.target.value)
                             }
                             placeholder={`Option ${oIndex + 1}`}

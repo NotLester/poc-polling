@@ -13,17 +13,20 @@ import { useUser } from '@/hooks/useUser';
 
 import { api } from '../../../convex/_generated/api';
 
-import type { Id } from "../../../convex/_generated/dataModel";
+import type {Id} from "../../../convex/_generated/dataModel";
 interface PollProps {
   pollId: Id<"polls">;
 }
 
-export function Poll({ pollId }: PollProps) {
-  const { isSignedIn, user } = useUser();
-  const poll = useQuery(api.polls.getPollDetails, { pollId });
+export function Poll({pollId}: PollProps) {
+  const {isSignedIn, user} = useUser();
+
+  const poll = useQuery(api.polls.getPollDetails, {pollId});
+
   const vote = useMutation(api.polls.vote);
   const updatePollStatus = useMutation(api.polls.updatePollStatus);
   const updateStatus = useMutation(api.polls.updateQuestionStatus);
+
   const [selectedOptions, setSelectedOptions] = useState<
     Record<string, string>
   >({});
@@ -39,7 +42,7 @@ export function Poll({ pollId }: PollProps) {
   // Calculate total votes for each question
   const getQuestionTotalVotes = (questionId: Id<"pollQuestions">) => {
     const options =
-      poll.questions.find((q) => q._id === questionId)?.options || [];
+      poll.questions.find(q => q._id === questionId)?.options || [];
     return options.reduce((sum, option) => sum + (option.votes || 0), 0);
   };
 
@@ -73,8 +76,8 @@ export function Poll({ pollId }: PollProps) {
         description: "Your vote has been successfully recorded.",
       });
       // Clear the selection for this question
-      setSelectedOptions((prev) => {
-        const next = { ...prev };
+      setSelectedOptions(prev => {
+        const next = {...prev};
         delete next[questionId];
         return next;
       });
@@ -154,7 +157,7 @@ export function Poll({ pollId }: PollProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {poll.questions.map((question) => {
+        {poll.questions.map(question => {
           const totalVotes = getQuestionTotalVotes(question._id);
           const isPublished = question.status === "published";
           return (
@@ -186,7 +189,7 @@ export function Poll({ pollId }: PollProps) {
               </div>
               {(isPublished || isPollCreator) && (
                 <div className="space-y-3">
-                  {question.options.map((option) => {
+                  {question.options.map(option => {
                     const percentage = getVotePercentage(
                       option.votes || 0,
                       totalVotes
@@ -202,8 +205,8 @@ export function Poll({ pollId }: PollProps) {
                               checked={
                                 selectedOptions[question._id] === option._id
                               }
-                              onChange={(e) =>
-                                setSelectedOptions((prev) => ({
+                              onChange={e =>
+                                setSelectedOptions(prev => ({
                                   ...prev,
                                   [question._id]: e.target.value,
                                 }))
