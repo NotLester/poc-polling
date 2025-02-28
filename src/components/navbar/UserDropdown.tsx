@@ -1,62 +1,36 @@
 "use client";
 
-import React from "react";
-import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
-import { LogOut, Palette, Plus, User as UserIcon } from "lucide-react";
-import { User } from "@supabase/supabase-js";
-import { useQueryClient } from "@tanstack/react-query";
+import { LogOut, Palette, Plus, User as UserIcon } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { useRouter } from 'next/navigation';
 
+import { useClerk, useUser } from '@clerk/nextjs';
+
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Button } from '../ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuPortal,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import { Button } from "../ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { createClient } from "@/lib/supabase/client";
+    DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup,
+    DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub,
+    DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger
+} from '../ui/dropdown-menu';
 
-type Props = {
-  user: User;
-};
-
-const UserDropdown = ({ user }: Props) => {
+const UserDropdown = () => {
   const router = useRouter();
-  const supabase = createClient();
-  const queryClient = useQueryClient();
+  const { signOut } = useClerk();
+  const { user } = useUser();
   const { theme, setTheme } = useTheme();
 
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Something went wrong while logging out");
-    } else {
-      location.reload();
-      queryClient.invalidateQueries({ queryKey: ["user-info"] });
-    }
-  };
+  if (!user) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarImage
-              src={user?.user_metadata?.avatar_url}
-              alt="profile-pic"
-            />
+            <AvatarImage src={user.imageUrl} alt="profile-pic" />
             <AvatarFallback>
-              {user?.user_metadata?.name?.slice(0, 2).toUpperCase()}
+              {user.firstName?.slice(0, 1)}
+              {user.lastName?.slice(0, 1)}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -66,10 +40,10 @@ const UserDropdown = ({ user }: Props) => {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user?.user_metadata?.user_name ?? user?.user_metadata?.full_name}
+              {user.fullName || user.username}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user?.email}
+              {user.primaryEmailAddress?.emailAddress}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -77,9 +51,7 @@ const UserDropdown = ({ user }: Props) => {
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
-          <DropdownMenuItem
-            onClick={() => router.push(`/profile?id=${user.id}`)}
-          >
+          <DropdownMenuItem onClick={() => router.push(`/profile`)}>
             <UserIcon className="mr-2 h-4 w-4" />
             Profile
           </DropdownMenuItem>
@@ -121,7 +93,7 @@ const UserDropdown = ({ user }: Props) => {
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onClick={handleLogout}>
+        <DropdownMenuItem onClick={() => signOut()}>
           <LogOut className="mr-2 h-4 w-4" />
           Log out
         </DropdownMenuItem>

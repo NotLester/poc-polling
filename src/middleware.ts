@@ -1,74 +1,23 @@
-import { CookieOptions, createServerClient } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+const isProtectedRoute = createRouteMatcher([
+  "/create-poll(.*)",
+  "/profile(.*)",
+]);
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: "",
-            ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({
-            name,
-            value: "",
-            ...options,
-          });
-        },
-      },
-    }
-  );
+export default clerkMiddleware(async (auth, req) => {
+  const { userId, redirectToSignIn } = await auth();
 
-  const user = await supabase.auth.getUser();
-
-  if (
-    !user?.data?.user &&
-    request.nextUrl.pathname.startsWith("/create-poll")
-  ) {
-    return NextResponse.redirect(new URL("/", request.url));
+  if (!userId && isProtectedRoute(req)) {
+    return redirectToSignIn();
   }
-  if (!user?.data?.user && request.nextUrl.pathname.startsWith("/profile")) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  return response;
-}
+});
 
 export const config = {
-  matcher: ["/profile", "/create-poll", "/", "/poll/:path*"],
+  matcher: [
+    // Skip Next.js internals and all static files
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Always run for API routes
+    "/(api|trpc)(.*)",
+  ],
 };

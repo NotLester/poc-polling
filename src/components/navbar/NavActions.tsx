@@ -1,19 +1,20 @@
 "use client";
 
-import LoginButton from "@/app/auth/compoenents/LoginButton";
-import UserDropdown from "./UserDropdown";
-import { useUser } from "@/hooks/useUser";
+import LoginButton from '@/app/auth/compoenents/LoginButton';
+import { useAuth } from '@clerk/nextjs';
+
+import UserDropdown from './UserDropdown';
 
 export default function NavActions() {
-  const { data: user, isLoading, isFetching } = useUser();
+  const { isSignedIn, isLoaded } = useAuth();
 
-  if (isLoading || isFetching) {
-    return <></>;
+  if (!isLoaded) {
+    return null;
   }
 
-  if (!user) {
+  if (!isSignedIn) {
     return <LoginButton />;
   }
 
-  return <UserDropdown user={user} />;
+  return <UserDropdown />;
 }

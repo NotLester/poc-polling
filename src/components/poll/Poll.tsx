@@ -1,160 +1,207 @@
 "use client";
 
-import React, { useMemo } from "react";
-import { AlertCircle, Share } from "lucide-react";
-import toast from "react-hot-toast";
-import { redirect, useRouter } from "next/navigation";
+import { useMutation, useQuery } from 'convex/react';
+import { formatDistanceToNow } from 'date-fns';
+import { useState } from 'react';
 
-import { Progress } from "../ui/progress";
-import { useUser } from "@/hooks/useUser";
-import { updatePoll } from "@/lib/actions/poll";
-import { useGetPoll, usePollOptionListner } from "@/hooks/poll";
-import { cn, getHighestOptions } from "@/lib/utils";
-import { Button } from "../ui/button";
-import { Alert, AlertTitle } from "../ui/alert";
-import PollLoading from "./PollLoading";
-import { Card, CardContent } from "../ui/card";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { toast } from '@/components/ui/use-toast';
+import { useUser } from '@/hooks/useUser';
 
-type Props = {
-  pollId: string;
-};
+import { api } from '../../../convex/_generated/api';
 
-const Poll = ({ pollId }: Props) => {
-  const router = useRouter();
-  const { data: pollData, isLoading } = useGetPoll(pollId);
-  const { data: userData } = useUser();
+import type { Id } from "../../../convex/_generated/dataModel";
+interface PollProps {
+  pollId: Id<"polls">;
+}
 
-  usePollOptionListner(pollId);
+export function Poll({ pollId }: PollProps) {
+  const { isSignedIn, user } = useUser();
+  const poll = useQuery(api.polls.getPollDetails, { pollId });
+  const vote = useMutation(api.polls.vote);
+  const updateStatus = useMutation(api.polls.updateQuestionStatus);
+  const [selectedOptions, setSelectedOptions] = useState<
+    Record<string, string>
+  >({});
 
-  const totalVotes = useMemo(
-    () =>
-      pollData?.pollOptions?.reduce((acc, curr) => acc + curr?.count, 0) || 0,
-    [pollData?.pollOptions]
-  );
-
-  const highestOptions = useMemo(
-    () => getHighestOptions(pollData?.pollOptions ?? []),
-    [pollData?.pollOptions]
-  );
-
-  if (isLoading && !pollData) {
-    return <PollLoading />;
+  if (!poll) {
+    return <div>Loading...</div>;
   }
 
-  if (!pollData) {
-    redirect("/");
-  }
+  const isExpired = new Date(poll.endDate) <= new Date();
+  const isPollCreator = user?.id === poll.userId;
 
-  const { user_poll_log, pollOptions, isPollActive } = pollData;
-
-  const handleShare = () => {
-    toast.promise(
-      navigator.clipboard.writeText(location.origin + "/poll/" + pollId),
-      {
-        loading: "Copying link...",
-        success: "Link copied successfully",
-        error: (err) => "Failt to copy link " + err.toString(),
-      }
-    );
+  // Calculate total votes for each question
+  const getQuestionTotalVotes = (questionId: Id<"pollQuestions">) => {
+    const options =
+      poll.questions.find((q) => q._id === questionId)?.options || [];
+    return options.reduce((sum, option) => sum + (option.votes || 0), 0);
   };
 
-  const castVotePromise = async (optionName: string) => {
-    const { error } = await updatePoll({
-      update_id: pollId,
-      option_name: optionName,
-    });
-    if (error) {
-      console.error(error.message);
-      throw new Error(error.message);
-    } else {
-      router.refresh();
+  // Calculate vote percentage for an option
+  const getVotePercentage = (votes: number, totalVotes: number) => {
+    if (totalVotes === 0) return 0;
+    return (votes / totalVotes) * 100;
+  };
+
+  const handleVote = async (questionId: Id<"pollQuestions">) => {
+    if (!isSignedIn) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to vote",
+        variant: "destructive",
+      });
+      return;
     }
-  };
 
-  const castVote = async (optionName: string) => {
-    if (!userData) {
-      toast.error("Please log in to vote");
-    } else {
-      toast.promise(castVotePromise(optionName), {
-        loading: "Voting for " + optionName + "...",
-        error: "Fail to vote for " + optionName,
-        success: "Successfully vote for " + optionName,
+    const optionId = selectedOptions[questionId];
+    if (!optionId) return;
+
+    try {
+      await vote({
+        pollId,
+        questionId,
+        optionId: optionId as Id<"pollOptions">,
+      });
+      toast({
+        title: "Vote recorded",
+        description: "Your vote has been successfully recorded.",
+      });
+      // Clear the selection for this question
+      setSelectedOptions((prev) => {
+        const next = { ...prev };
+        delete next[questionId];
+        return next;
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to record vote",
+        variant: "destructive",
       });
     }
   };
 
-  const disablePoll = Boolean(user_poll_log) || !isPollActive;
+  const handleStatusChange = async (
+    questionId: Id<"pollQuestions">,
+    newStatus: string
+  ) => {
+    try {
+      await updateStatus({
+        questionId,
+        status: newStatus,
+      });
+      toast({
+        title: "Status updated",
+        description: `Question is now ${newStatus}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to update status",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <>
-      <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-10">
-        <div className="space-y-4">
-          {pollOptions?.map((option) => {
-            const percentage =
-              totalVotes !== 0
-                ? Math.round((option?.count / totalVotes) * 100)
-                : 0;
-
-            const highestOptionAfterPollExpired =
-              highestOptions.includes(option?.option) && !isPollActive;
-
-            return (
-              <div
-                key={option?.option}
-                onClick={() => !disablePoll && castVote(option?.option)}
-                className={cn(
-                  "border rounded-lg px-2 py-4 space-y-2 bg-background transition-all delay-100",
-                  !disablePoll &&
-                    "hover:scale-105 hover:-translate-y-1 hover:cursor-pointer hover:border-primary",
-                  highestOptionAfterPollExpired && "border-primary"
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="text-2xl">{poll.title}</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          {isExpired
+            ? `Ended ${formatDistanceToNow(new Date(poll.endDate))} ago`
+            : `Ends ${formatDistanceToNow(new Date(poll.endDate))} from now`}
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {poll.questions.map((question) => {
+          const totalVotes = getQuestionTotalVotes(question._id);
+          const isPublished = question.status === "published";
+          return (
+            <div key={question._id} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-lg">{question.text}</h3>
+                {isPollCreator && !isExpired && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant={isPublished ? "default" : "secondary"}>
+                      {question.status}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        handleStatusChange(
+                          question._id,
+                          isPublished ? "inactive" : "published"
+                        )
+                      }
+                    >
+                      {isPublished ? "Unpublish" : "Publish"}
+                    </Button>
+                  </div>
                 )}
-              >
-                <div className="flex justify-between">
-                  <p className="font-bold text-lg">
-                    {option?.option} {highestOptionAfterPollExpired && "🥳"}
-                  </p>
-                  <p className=" font-bold">{percentage}%</p>
+                {!isPollCreator && !isPublished && (
+                  <Badge variant="secondary">Not yet available</Badge>
+                )}
+              </div>
+              {(isPublished || isPollCreator) && (
+                <div className="space-y-3">
+                  {question.options.map((option) => {
+                    const percentage = getVotePercentage(
+                      option.votes || 0,
+                      totalVotes
+                    );
+                    return (
+                      <div key={option._id} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              name={`question-${question._id}`}
+                              value={option._id}
+                              checked={
+                                selectedOptions[question._id] === option._id
+                              }
+                              onChange={(e) =>
+                                setSelectedOptions((prev) => ({
+                                  ...prev,
+                                  [question._id]: e.target.value,
+                                }))
+                              }
+                              disabled={isExpired || !isPublished}
+                              className="radio"
+                            />
+                            <span>{option.text}</span>
+                          </label>
+                          <span className="text-sm text-muted-foreground">
+                            {option.votes || 0} votes ({percentage.toFixed(1)}%)
+                          </span>
+                        </div>
+                        <Progress value={percentage} className="h-2" />
+                      </div>
+                    );
+                  })}
                 </div>
-
-                <Progress value={percentage} />
-
-                <p className="text-muted-foreground">{option?.count} votes</p>
-              </div>
-            );
-          })}
-        </div>
-
-        <div>
-          <Card className="bg-muted/40 py-5">
-            <CardContent className="text-center space-y-6 md:pt-4">
-              {user_poll_log && (
-                <Alert className="bg-transaparent w-fit mx-auto border-primary">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>
-                    You voted for{" "}
-                    <span className="text-primary">
-                      {user_poll_log?.option}{" "}
-                    </span>
-                    on{" "}
-                    {new Date(
-                      user_poll_log?.created_at ?? ""
-                    ).toLocaleDateString()}
-                  </AlertTitle>
-                </Alert>
               )}
-              <div className="space-y-2 text-center">
-                <p className="text-muted-foreground">Votes</p>
-                <h1 className=" font-extrabold text-5xl">{totalVotes}</h1>
-              </div>
-              <Button className="w-[150px] mx-auto" onClick={handleShare}>
-                <Share className="w-4 h-4 mr-2" /> Share
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </>
+              {!isExpired && isPublished && (
+                <Button
+                  onClick={() => handleVote(question._id)}
+                  disabled={!selectedOptions[question._id]}
+                  className="mt-2"
+                >
+                  Vote
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
-};
-
-export default Poll;
+}

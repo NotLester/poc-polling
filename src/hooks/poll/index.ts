@@ -1,100 +1,51 @@
 // src/hooks/poll/index.ts
 
-import { useEffect } from 'react';
+import { useQuery } from 'convex/react';
 
-import { getUserVotesForPoll } from '@/lib/actions/poll';
-import { createClient } from '@/lib/supabase/client';
-import { isPollActive } from '@/lib/utils';
-import { IPollLog } from '@/types';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUser } from '@clerk/nextjs';
 
-export const useGetPoll = (poll_id: string) => {
-  const supabase = createClient();
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 
-  return useQuery({
-    queryKey: ["poll-" + poll_id],
-    queryFn: async () => {
-      // Fetch the poll with all its questions and options
-      const {data: pollData} = await supabase
-        .from("poll")
-        .select(
-          `
-          *,
-          questions:poll_question(
-            *,
-            options:poll_option(*)
-          )
-        `
-        )
-        .eq("id", poll_id)
-        .single();
+export const useGetPoll = (pollId: Id<"polls">) => {
+  const poll = useQuery(api.queries.getPoll, { pollId });
+  const { user } = useUser();
 
-      if (!pollData) {
-        throw new Error("Poll not found");
-      }
-
-      // Get user's auth data
-      const {data: authData} = await supabase.auth.getUser();
-      const userId = authData?.user?.id;
-
-      // If user is logged in, fetch their votes for this poll
-      let userVotes: IPollLog[] = [];
-      if (userId) {
-        const {data: votes} = await supabase
-          .from("poll_log")
-          .select("*")
-          .eq("poll_id", poll_id)
-          .eq("user_id", userId);
-
-        userVotes = votes || [];
-      }
-
-      return {
-        poll: pollData,
-        userVotes,
-        isPollActive: isPollActive(pollData?.end_date ?? ""),
-      };
-    },
-    staleTime: Infinity,
-  });
-};
-
-export const usePollQuestionListner = (poll_id: string) => {
-  const supabase = createClient();
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    const channels = supabase
-      .channel("custom-update-channel")
-      .on(
-        "postgres_changes",
-        {event: "UPDATE", schema: "public", table: "poll_option"},
-        payload => {
-          queryClient.invalidateQueries({
-            queryKey: ["poll-" + poll_id],
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      channels.unsubscribe();
+  if (!poll) {
+    return {
+      isLoading: true,
+      data: null,
     };
-  }, [poll_id, queryClient, supabase]);
+  }
 
-  return;
+  return {
+    isLoading: false,
+    data: {
+      poll,
+      userVotes: poll.questions.flatMap((q) =>
+        q.votes.filter((v) => v.userId === user?.id)
+      ),
+      isPollActive: new Date(poll.endDate) > new Date(),
+    },
+  };
 };
 
-export const useUserVotesForPoll = (pollId: string, userId?: string) => {
-  return useQuery({
-    queryKey: ["user-votes", pollId, userId],
-    queryFn: async () => {
-      if (!userId) return [];
+// No need for usePollQuestionListener as Convex automatically
+// updates the UI when data changes
 
-      const {data} = await getUserVotesForPoll(pollId, userId);
-      return data || [];
-    },
-    enabled: !!userId,
-    staleTime: Infinity,
-  });
+export const useUserVotesForPoll = (pollId: Id<"polls">) => {
+  const { user } = useUser();
+  const votes = useQuery(api.queries.getUserVotes, { pollId });
+
+  if (!user || !votes) {
+    return {
+      isLoading: true,
+      data: [],
+    };
+  }
+
+  return {
+    isLoading: false,
+    data: votes,
+  };
 };

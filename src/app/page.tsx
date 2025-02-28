@@ -1,52 +1,92 @@
-import { Suspense } from "react";
+"use client";
 
-import CarouselCompoenent from "@/components/common/Carousel";
-import PollListLoading from "@/components/common/PollListLoading";
-import PollsList from "@/components/common/PollsList";
-import { ActivePollLists, ExpiredPollsList } from "@/lib/actions/poll";
-import { createClient } from "@/lib/supabase/server";
+import { useQuery } from 'convex/react';
+import { useRouter } from 'next/navigation';
 
-export default async function Home() {
-  const supabase = createClient();
-  const { data } = await supabase.auth.getUser();
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useUser } from '@clerk/nextjs';
+
+import { api } from '../../convex/_generated/api';
+
+export default function Home() {
+  const router = useRouter();
+  const { isLoaded, isSignedIn } = useUser();
+  const activePolls = useQuery(api.queries.getActivePolls);
+  const expiredPolls = useQuery(api.queries.getExpiredPolls);
+
+  if (!isLoaded) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <div className="space-y-10">
-      <CarouselCompoenent user={data?.user} />
+    <main className="container mx-auto py-10">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold">Polls</h1>
+        {isSignedIn && (
+          <Button onClick={() => router.push("/create")}>Create Poll</Button>
+        )}
+      </div>
 
-      <h1 className="text-2xl font-bold text-primary">Active Public Polls</h1>
-      <Suspense fallback={<PollListLoading />}>
-        <ActivePolls />
-      </Suspense>
-
-      <h1 className="text-2xl font-bold text-red-400">Previous polls</h1>
-      <Suspense fallback={<PollListLoading />}>
-        <ExpiredPolls />
-      </Suspense>
-    </div>
+      <Tabs defaultValue="active" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="active">Active Polls</TabsTrigger>
+          <TabsTrigger value="expired">Expired Polls</TabsTrigger>
+        </TabsList>
+        <TabsContent value="active">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {activePolls?.map((poll) => (
+              <Card
+                key={poll._id}
+                className="cursor-pointer hover:bg-gray-50"
+                onClick={() => router.push(`/poll/${poll._id}`)}
+              >
+                <CardHeader>
+                  <CardTitle>{poll.title}</CardTitle>
+                  <CardDescription>
+                    Ends: {new Date(poll.endDate).toLocaleDateString()}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-500">
+                    {poll.questions.length} question(s)
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+            {activePolls?.length === 0 && (
+              <p className="text-gray-500">No active polls found.</p>
+            )}
+          </div>
+        </TabsContent>
+        <TabsContent value="expired">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {expiredPolls?.map((poll) => (
+              <Card
+                key={poll._id}
+                className="cursor-pointer hover:bg-gray-50"
+                onClick={() => router.push(`/poll/${poll._id}`)}
+              >
+                <CardHeader>
+                  <CardTitle>{poll.title}</CardTitle>
+                  <CardDescription>
+                    Ended: {new Date(poll.endDate).toLocaleDateString()}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-500">
+                    {poll.questions.length} question(s)
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+            {expiredPolls?.length === 0 && (
+              <p className="text-gray-500">No expired polls found.</p>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </main>
   );
 }
-
-const ActivePolls = async () => {
-  const { data: polls } = await ActivePollLists();
-
-  if (!polls?.length) {
-    return (
-      <h1 className="text-center text-muted-foreground">No polls yet 😔</h1>
-    );
-  }
-
-  return <PollsList polls={polls} />;
-};
-
-const ExpiredPolls = async () => {
-  const { data: polls } = await ExpiredPollsList();
-
-  if (!polls?.length) {
-    return (
-      <h1 className="text-center text-muted-foreground">No polls yet 😔</h1>
-    );
-  }
-
-  return <PollsList polls={polls} isExpired={true} />;
-};

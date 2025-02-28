@@ -1,15 +1,17 @@
-import "../styles/globals.css";
+import '../styles/globals.css';
+
+import { Nunito } from 'next/font/google';
+
+import Footer from '@/components/common/Footer';
+import Navbar from '@/components/navbar/Navbar';
+import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from '@/components/ui/toaster';
+import { siteConfig } from '@/config/site';
+import { cn } from '@/lib/utils';
+
+import { Providers } from './providers';
 
 import type { Metadata } from "next";
-import { Nunito } from "next/font/google";
-
-import { cn } from "@/lib/utils";
-import Providers from "@/components/Provider";
-import Navbar from "@/components/navbar/Navbar";
-import { ThemeProvider } from "@/components/theme-provider";
-import Footer from "@/components/common/Footer";
-import { siteConfig } from "@/config/site";
-
 const inter = Nunito({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -70,6 +72,7 @@ export default function RootLayout({
 
               <Footer />
             </main>
+            <Toaster />
           </Providers>
         </ThemeProvider>
       </body>

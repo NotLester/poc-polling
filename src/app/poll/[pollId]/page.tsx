@@ -1,47 +1,22 @@
-import { Metadata } from "next";
-import { redirect } from "next/navigation";
+"use client";
 
-import { createClient } from "@/lib/supabase/server";
-import PollRootWrapper from "@/components/poll/PollRootWrapper";
+import { notFound, useParams } from 'next/navigation';
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { pollId: string };
-}): Promise<Metadata> {
-  const supabase = createClient();
+import { Poll } from '@/components/poll/Poll';
 
-  const { data: poll } = await supabase
-    .from("poll")
-    .select("*,users(*)")
-    .eq("id", params.pollId)
-    .single();
+import type { Id } from "../../../../convex/_generated/dataModel";
 
-  if (!poll) {
-    return {};
+export default function PollPage() {
+  const params = useParams();
+  const pollId = params.pollId as unknown as Id<"polls">;
+
+  if (!pollId) {
+    notFound();
   }
 
-  return {
-    title: poll.title,
-  };
-}
-
-export default async function PollPage({
-  params,
-}: {
-  params: { pollId: string };
-}) {
-  const supabase = createClient();
-
-  const { data: poll } = await supabase
-    .from("poll")
-    .select("*,users(*)")
-    .eq("id", params.pollId)
-    .single();
-
-  if (!poll) {
-    return redirect("/404");
-  }
-
-  return <PollRootWrapper poll={poll} />;
+  return (
+    <main className="container mx-auto py-10">
+      <Poll pollId={pollId} />
+    </main>
+  );
 }
