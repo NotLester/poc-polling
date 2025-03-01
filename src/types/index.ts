@@ -56,14 +56,14 @@ export type IPolls = {
 }[];
 
 // Type for the DB structure in supabase.ts - you may need to update this file as well
-export type SiteConfig = {
-  name: string;
-  description: string;
-  url: string;
-  links: {
-    github: string;
-  };
-};
+// export type SiteConfig = {
+//   name: string;
+//   description: string;
+//   url: string;
+//   links: {
+//     github: string;
+//   };
+// };
 
 // Form types for creating a multi-question poll
 export type MultiQuestionPollFormData = {

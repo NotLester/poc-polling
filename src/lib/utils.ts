@@ -1,4 +1,4 @@
-import { ClassValue, clsx, type } from 'clsx';
+import { ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
@@ -37,7 +37,7 @@ export function getHighestOptions(
   let highestCount = 0;
   let highestOptions: string[] = [];
 
-  options.forEach((option) => {
+  options.forEach(option => {
     if (option.count > highestCount) {
       highestCount = option.count;
       highestOptions = [option.option];

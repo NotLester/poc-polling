@@ -1,52 +1,16 @@
-import '../styles/globals.css';
+import "../styles/globals.css";
 
-import { Nunito } from 'next/font/google';
+import {Nunito} from "next/font/google";
 
-import Footer from '@/components/common/Footer';
-import Navbar from '@/components/navbar/Navbar';
-import { ThemeProvider } from '@/components/theme-provider';
-import { Toaster } from '@/components/ui/toaster';
-import { siteConfig } from '@/config/site';
-import { cn } from '@/lib/utils';
+import Footer from "@/components/common/Footer";
+import Navbar from "@/components/navbar/Navbar";
+import {ThemeProvider} from "@/components/theme-provider";
+import {Toaster} from "@/components/ui/toaster";
+import {cn} from "@/lib/utils";
 
-import { Providers } from './providers';
+import {Providers} from "./providers";
 
-import type { Metadata } from "next";
-const inter = Nunito({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: {
-    default: siteConfig.name,
-    template: `%s | ${siteConfig.name}`,
-  },
-  description: siteConfig.description,
-  keywords: [
-    "nextjs",
-    "react",
-    "react server components",
-    "supabase",
-    "poll",
-    "vote",
-  ],
-  authors: [
-    {
-      name: "anmol",
-      url: "https://github.com/AnmolSaini16",
-    },
-  ],
-  creator: "anmol",
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: siteConfig.url,
-    title: siteConfig.name,
-    description: siteConfig.description,
-    siteName: siteConfig.name,
-  },
-  icons: {
-    icon: "/icon.png",
-  },
-};
+const inter = Nunito({subsets: ["latin"]});
 
 export default function RootLayout({
   children,

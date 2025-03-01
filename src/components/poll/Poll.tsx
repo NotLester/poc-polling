@@ -1,8 +1,14 @@
 "use client";
 
 import { useMutation, useQuery } from 'convex/react';
-import { useState } from 'react';
+import { QrCode } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import QRCode from 'react-qr-code';
 
+import {
+    AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+    AlertDialogHeader, AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +20,7 @@ import { useUser } from '@/hooks/useUser';
 import { api } from '../../../convex/_generated/api';
 
 import type {Id} from "../../../convex/_generated/dataModel";
+
 interface PollProps {
   pollId: Id<"polls">;
 }
@@ -30,6 +37,15 @@ export function Poll({pollId}: PollProps) {
   const [selectedOptions, setSelectedOptions] = useState<
     Record<string, string>
   >({});
+  const [pageUrl, setPageUrl] = useState("");
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+
+  // Set the page URL for QR code once the component mounts on client side
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setPageUrl(window.location.href);
+    }
+  }, []);
 
   if (!poll) {
     return <div>Loading...</div>;
@@ -152,9 +168,44 @@ export function Poll({pollId}: PollProps) {
                 onCheckedChange={handlePollStatusToggle}
                 aria-label="Toggle poll status"
               />
+              {isPollActive && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQrDialogOpen(true)}
+                  className="flex items-center gap-1"
+                >
+                  <QrCode size={16} />
+                  QR Code
+                </Button>
+              )}
             </div>
           )}
         </div>
+
+        <AlertDialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Poll QR Code</AlertDialogTitle>
+              <AlertDialogDescription>
+                Share this QR code to give others easy access to your poll.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex justify-center my-4">
+              <div className="p-4 bg-white rounded-md">
+                <QRCode
+                  value={pageUrl}
+                  size={200}
+                  level="H"
+                  className="max-w-full"
+                />
+              </div>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogAction>Close</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardHeader>
       <CardContent className="space-y-6">
         {poll.questions.map(question => {
