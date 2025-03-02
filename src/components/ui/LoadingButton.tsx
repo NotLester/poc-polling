@@ -1,7 +1,9 @@
-import React from "react";
-import { Button } from "./button";
-import { Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2 } from 'lucide-react';
+import React from 'react';
+
+import { cn } from '@/lib/utils';
+
+import { Button } from './button';
 
 type Props = {
   text: string;

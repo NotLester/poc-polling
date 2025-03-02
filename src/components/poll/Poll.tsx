@@ -40,9 +40,7 @@ export function Poll({pollId}: PollProps) {
   const updatePollStatus = useMutation(api.polls.updatePollStatus);
   const updateStatus = useMutation(api.polls.updateQuestionStatus);
 
-  const [selectedOptions, setSelectedOptions] = useState<
-    Record<string, string>
-  >({});
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [pageUrl, setPageUrl] = useState("");
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("vote");
@@ -86,14 +84,11 @@ export function Poll({pollId}: PollProps) {
   const isExpired = poll.status === "inactive";
   const isPollCreator = user?.id === poll.userId;
   const isPollActive = poll.status === "published";
-  const hasVotableQuestions = poll.questions.some(
-    q => q.status === "published"
-  );
+  const hasVotableQuestions = poll.questions.some(q => q.status === "published");
 
   // Calculate total votes for each question
   const getQuestionTotalVotes = (questionId: Id<"pollQuestions">) => {
-    const options =
-      poll.questions.find(q => q._id === questionId)?.options || [];
+    const options = poll.questions.find(q => q._id === questionId)?.options || [];
     return options.reduce((sum, option) => sum + (option.votes || 0), 0);
   };
 
@@ -135,17 +130,13 @@ export function Poll({pollId}: PollProps) {
     } catch (error) {
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to record vote",
+        description: error instanceof Error ? error.message : "Failed to record vote",
         variant: "destructive",
       });
     }
   };
 
-  const handleStatusChange = async (
-    questionId: Id<"pollQuestions">,
-    newStatus: string
-  ) => {
+  const handleStatusChange = async (questionId: Id<"pollQuestions">, newStatus: string) => {
     try {
       await updateStatus({
         questionId,
@@ -158,8 +149,7 @@ export function Poll({pollId}: PollProps) {
     } catch (error) {
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to update status",
+        description: error instanceof Error ? error.message : "Failed to update status",
         variant: "destructive",
       });
     }
@@ -179,10 +169,7 @@ export function Poll({pollId}: PollProps) {
     } catch (error) {
       toast({
         title: "Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to update poll status",
+        description: error instanceof Error ? error.message : "Failed to update poll status",
         variant: "destructive",
       });
     }
@@ -313,9 +300,7 @@ export function Poll({pollId}: PollProps) {
         {!isPollActive && !isPollCreator ? (
           <div className="p-8 text-center space-y-2 bg-slate-50 rounded-lg border border-dashed">
             <EyeOff className="mx-auto text-slate-400 mb-2" />
-            <h3 className="font-semibold text-lg">
-              This poll is currently inactive
-            </h3>
+            <h3 className="font-semibold text-lg">This poll is currently inactive</h3>
             <p className="text-muted-foreground">
               The poll creator has temporarily disabled this poll.
             </p>
@@ -323,9 +308,7 @@ export function Poll({pollId}: PollProps) {
         ) : !hasVotableQuestions && !isPollCreator ? (
           <div className="p-8 text-center space-y-2 bg-slate-50 rounded-lg border border-dashed">
             <Eye className="mx-auto text-slate-400 mb-2" />
-            <h3 className="font-semibold text-lg">
-              No questions available yet
-            </h3>
+            <h3 className="font-semibold text-lg">No questions available yet</h3>
             <p className="text-muted-foreground">
               Check back later when questions have been published.
             </p>
@@ -353,10 +336,7 @@ export function Poll({pollId}: PollProps) {
                     <h3 className="font-medium text-lg flex items-center gap-2">
                       {question.text}
                       {totalVotes > 0 && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs font-normal"
-                        >
+                        <Badge variant="outline" className="text-xs font-normal">
                           {totalVotes} {totalVotes === 1 ? "vote" : "votes"}
                         </Badge>
                       )}
@@ -409,26 +389,17 @@ export function Poll({pollId}: PollProps) {
                       </div>
                     )}
                     {!isPollCreator && !isPublished && (
-                      <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                      >
+                      <Badge variant="secondary" className="flex items-center gap-1">
                         <EyeOff size={12} />
                         Not available
                       </Badge>
                     )}
                   </div>
-                  {(isPublished ||
-                    (isPollCreator && activeTab === "manage")) && (
+                  {(isPublished || (isPollCreator && activeTab === "manage")) && (
                     <div className="space-y-3 mt-2">
                       {question.options.map(option => {
-                        const percentage = getVotePercentage(
-                          option.votes || 0,
-                          totalVotes
-                        );
-                        const isHighest =
-                          highestVotedOption?._id === option._id &&
-                          totalVotes > 0;
+                        const percentage = getVotePercentage(option.votes || 0, totalVotes);
+                        const isHighest = highestVotedOption?._id === option._id && totalVotes > 0;
 
                         return (
                           <div
@@ -460,10 +431,7 @@ export function Poll({pollId}: PollProps) {
                                     type="radio"
                                     name={`question-${question._id}`}
                                     value={option._id}
-                                    checked={
-                                      selectedOptions[question._id] ===
-                                      option._id
-                                    }
+                                    checked={selectedOptions[question._id] === option._id}
                                     onChange={e =>
                                       setSelectedOptions(prev => ({
                                         ...prev,
@@ -480,10 +448,7 @@ export function Poll({pollId}: PollProps) {
                                 </div>
                                 <div className="flex-grow relative">
                                   <span
-                                    className={cn(
-                                      "transition-all",
-                                      isHighest && "font-medium"
-                                    )}
+                                    className={cn("transition-all", isHighest && "font-medium")}
                                   >
                                     {option.text}
                                   </span>
@@ -492,24 +457,18 @@ export function Poll({pollId}: PollProps) {
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <Badge className="ml-2 bg-green-100 text-green-800 hover:bg-green-200">
-                                            <LucideCheck
-                                              size={12}
-                                              className="mr-1"
-                                            />
+                                            <LucideCheck size={12} className="mr-1" />
                                             Leading
                                           </Badge>
                                         </TooltipTrigger>
-                                        <TooltipContent>
-                                          Most voted option
-                                        </TooltipContent>
+                                        <TooltipContent>Most voted option</TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
                                   )}
                                 </div>
                               </label>
                               <span className="text-sm text-muted-foreground whitespace-nowrap">
-                                {option.votes || 0}{" "}
-                                {option.votes === 1 ? "vote" : "votes"} (
+                                {option.votes || 0} {option.votes === 1 ? "vote" : "votes"} (
                                 {percentage.toFixed(1)}%)
                               </span>
                             </div>
@@ -528,74 +487,59 @@ export function Poll({pollId}: PollProps) {
                       })}
                     </div>
                   )}
-                  {!isExpired &&
-                    isPublished &&
-                    (isPollCreator ? activeTab !== "manage" : true) && (
-                      <Button
-                        onClick={() => handleVote(question._id)}
-                        disabled={!selectedOptions[question._id]}
-                        className={cn(
-                          "mt-3 w-full sm:w-auto transition-all",
-                          hasSelectedOption
-                            ? "bg-primary hover:bg-primary/90"
-                            : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                        )}
-                        variant={hasSelectedOption ? "default" : "outline"}
-                      >
-                        <Vote className="mr-2 h-4 w-4" />
-                        Submit Vote
-                      </Button>
-                    )}
+                  {!isExpired && isPublished && (isPollCreator ? activeTab !== "manage" : true) && (
+                    <Button
+                      onClick={() => handleVote(question._id)}
+                      disabled={!selectedOptions[question._id]}
+                      className={cn(
+                        "mt-3 w-full sm:w-auto transition-all",
+                        hasSelectedOption
+                          ? "bg-primary hover:bg-primary/90"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      )}
+                      variant={hasSelectedOption ? "default" : "outline"}
+                    >
+                      <Vote className="mr-2 h-4 w-4" />
+                      Submit Vote
+                    </Button>
+                  )}
                 </div>
               );
             })}
           </div>
         )}
 
-        {isPollActive &&
-          isPollCreator &&
-          activeTab === "manage" &&
-          poll.questions.length > 0 && (
-            <div className="mt-8 bg-slate-50 p-4 rounded-lg border border-dashed">
-              <div className="flex items-center gap-2 text-sm text-slate-600 mb-3">
-                <BarChart3 size={16} />
-                <h3 className="font-medium">Poll Insights</h3>
+        {isPollActive && isPollCreator && activeTab === "manage" && poll.questions.length > 0 && (
+          <div className="mt-8 bg-slate-50 p-4 rounded-lg border border-dashed">
+            <div className="flex items-center gap-2 text-sm text-slate-600 mb-3">
+              <BarChart3 size={16} />
+              <h3 className="font-medium">Poll Insights</h3>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="bg-white p-3 rounded-lg shadow-sm">
+                <div className="text-sm text-slate-500">Total Votes</div>
+                <div className="text-xl font-bold">{totalPollVotes}</div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="bg-white p-3 rounded-lg shadow-sm">
-                  <div className="text-sm text-slate-500">Total Votes</div>
-                  <div className="text-xl font-bold">{totalPollVotes}</div>
-                </div>
-                <div className="bg-white p-3 rounded-lg shadow-sm">
-                  <div className="text-sm text-slate-500">Questions</div>
-                  <div className="text-xl font-bold">
-                    {poll.questions.length}
-                  </div>
-                </div>
-                <div className="bg-white p-3 rounded-lg shadow-sm">
-                  <div className="text-sm text-slate-500">Published</div>
-                  <div className="text-xl font-bold">
-                    {
-                      poll.questions.filter(q => q.status === "published")
-                        .length
-                    }
-                  </div>
+              <div className="bg-white p-3 rounded-lg shadow-sm">
+                <div className="text-sm text-slate-500">Questions</div>
+                <div className="text-xl font-bold">{poll.questions.length}</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg shadow-sm">
+                <div className="text-sm text-slate-500">Published</div>
+                <div className="text-xl font-bold">
+                  {poll.questions.filter(q => q.status === "published").length}
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-        {isPollActive &&
-          !isPollCreator &&
-          hasVotedOnAll &&
-          totalPollVotes > 0 && (
-            <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-100 text-center flex items-center justify-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              <p className="text-green-700 font-medium">
-                Thank you for participating in this poll!
-              </p>
-            </div>
-          )}
+        {isPollActive && !isPollCreator && hasVotedOnAll && totalPollVotes > 0 && (
+          <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-100 text-center flex items-center justify-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
+            <p className="text-green-700 font-medium">Thank you for participating in this poll!</p>
+          </div>
+        )}
       </CardContent>
 
       <AlertDialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
@@ -609,12 +553,7 @@ export function Poll({pollId}: PollProps) {
           <div className="flex justify-center my-4">
             <div className="p-6 bg-white rounded-lg shadow-sm flex flex-col items-center justify-center gap-6 border">
               <div className="bg-white p-3 rounded-lg shadow border">
-                <QRCode
-                  value={pageUrl}
-                  size={220}
-                  level="H"
-                  className="max-w-full"
-                />
+                <QRCode value={pageUrl} size={220} level="H" className="max-w-full" />
               </div>
               <div className="w-full">
                 <p className="text-xs text-muted-foreground mb-1">Poll URL:</p>
@@ -632,8 +571,7 @@ export function Poll({pollId}: PollProps) {
                             navigator.clipboard.writeText(pageUrl);
                             toast({
                               title: "URL Copied",
-                              description:
-                                "Poll URL has been copied to clipboard",
+                              description: "Poll URL has been copied to clipboard",
                             });
                           }}
                         >

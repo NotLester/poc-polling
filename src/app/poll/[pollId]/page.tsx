@@ -1,15 +1,16 @@
-"use client";
-
-import { notFound, useParams } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
 import { Poll } from '@/components/poll/Poll';
 
-import type { Id } from "../../../../convex/_generated/dataModel";
+import type {Id} from "../../../../convex/_generated/dataModel";
 
-export default function PollPage() {
-  const params = useParams();
-  const pollId = params.pollId as unknown as Id<"polls">;
+interface PollPageProps {
+  params: {
+    pollId: Id<"polls">;
+  };
+}
 
+export default function PollPage({params: {pollId}}: PollPageProps) {
   console.log(pollId);
 
   if (!pollId) {
