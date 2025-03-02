@@ -17,15 +17,6 @@ const CarouselCompoenent = ({user}: {user: User | null}) => {
           user ? "grid-rows-3" : "grid-rows-2"
         )}
       >
-        {/* <h1 className="font-bold text-4xl">
-          Create instant, real-time polls for free!
-        </h1>
-        <h4 className="text-muted-foreground">
-          Precision meets customization with our poll app! Whether it's
-          gathering feedback for your business or simply settling a debate among
-          friends, our platform offers the flexibility to create polls that hit
-          the mark every time.
-        </h4> */}
         {user && (
           <Button asChild className="w-fit mx-auto">
             <Link href="/create-poll">
