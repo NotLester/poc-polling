@@ -1,5 +1,6 @@
 import { Badge, BarChart3, Calendar, Users } from 'lucide-react';
 import Link from 'next/link';
+import { memo } from 'react';
 
 import { cn, getStatusColor, getStatusIcon } from '@/lib/utils';
 import { Poll } from '@/types';
@@ -9,7 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card
 interface PollCardProps {
   poll: Poll;
 }
-export const PollCard = ({poll}: PollCardProps) => {
+export const PollCard = memo(({poll}: PollCardProps) => {
   const totalVotes = poll.questions.reduce(
     (t, {options}) => t + options.reduce((sum, {votes}) => sum + votes, 0),
     0
@@ -62,4 +63,4 @@ export const PollCard = ({poll}: PollCardProps) => {
       </Card>
     </Link>
   );
-};
+});

@@ -1,54 +1,59 @@
 "use client";
 
-import { CheckCircle2, Clock, Loader2, PlusCircle } from 'lucide-react';
+import { useQuery } from 'convex/react';
+import { CheckCircle2, Clock, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 
-import { EmptyState } from '@/components/poll/EmptyState';
-import { PollCard } from '@/components/poll/PollCard';
-import { Badge } from '@/components/ui/badge';
+import { LoadingState } from '@/components/poll/LoadingState';
+import { PollCount } from '@/components/poll/PollCount';
+import { PollsList } from '@/components/poll/PollsList';
+import { SearchBar } from '@/components/poll/SearchBar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useGetPolls } from '@/hooks/poll';
-import { Poll } from '@/types';
+import useDebounce from '@/hooks/use-debounce';
 import { useUser } from '@clerk/nextjs';
+
+import { api } from '../../convex/_generated/api';
 
 export default function Home() {
   const {isLoaded, isSignedIn, user} = useUser();
 
-  const {polls, pollsStatus} = useGetPolls();
+  const polls = useQuery(api.queries.getPolls);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filteredActive, setFilteredActive] = useState<Poll[]>([]);
-  const [filteredInactive, setFilteredInactive] = useState<Poll[]>([]);
+  const [searchInput, setSearchInput] = useState("");
 
-  useEffect(() => {
-    if (!polls) return;
-    const active = polls.filter(poll => poll.status === "published");
-    const inactive = polls.filter(poll => poll.status === "unpublished");
+  const searchTerm = useDebounce(searchInput, 300);
 
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      setFilteredActive(active.filter(poll => poll.title.toLowerCase().includes(term)));
-      setFilteredInactive(inactive.filter(poll => poll.title.toLowerCase().includes(term)));
-    } else {
-      setFilteredActive(active);
-      setFilteredInactive(inactive);
-    }
-
-    return () => {
-      setFilteredActive([]);
-      setFilteredInactive([]);
-    };
+  // Memoized derived data
+  const filteredActive = useMemo(() => {
+    if (!polls) return [];
+    const term = searchTerm.toLowerCase();
+    return polls.filter(
+      poll =>
+        poll.status === "published" && (!searchTerm || poll.title.toLowerCase().includes(term))
+    );
   }, [polls, searchTerm]);
 
-  if (!isLoaded || pollsStatus === "pending") {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-lg text-muted-foreground">Loading polls...</p>
-      </div>
+  const filteredInactive = useMemo(() => {
+    if (!polls) return [];
+    const term = searchTerm.toLowerCase();
+    return polls.filter(
+      poll =>
+        poll.status === "unpublished" && (!searchTerm || poll.title.toLowerCase().includes(term))
     );
+  }, [polls, searchTerm]);
+
+  const activeCount = useMemo(() => filteredActive.length, [filteredActive]);
+  const inactiveCount = useMemo(() => filteredInactive.length, [filteredInactive]);
+
+  const greeting = useMemo<string>(() => {
+    if (!isSignedIn) return "Create and manage interactive polls.";
+    return `Welcome back${user?.firstName ? `, ${user.firstName}` : ""}. Manage your polls and see responses.`;
+  }, [isSignedIn, user?.firstName]);
+
+  if (!isLoaded || !polls) {
+    return <LoadingState />;
   }
 
   return (
@@ -58,11 +63,7 @@ export default function Home() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Your Polls</h1>
-            <p className="text-muted-foreground mt-1">
-              {isSignedIn
-                ? `Welcome back${user?.firstName ? `, ${user.firstName}` : ""}. Manage your polls and see responses.`
-                : "Create and manage interactive polls."}
-            </p>
+            <p className="text-muted-foreground mt-1">{greeting}</p>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -78,15 +79,7 @@ export default function Home() {
         </div>
 
         {/* Search Section */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search polls..."
-            className="w-full px-4 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
+        <SearchBar value={searchInput} onChange={setSearchInput} />
 
         {/* Tabs */}
         <Tabs defaultValue="active" className="w-full">
@@ -94,45 +87,21 @@ export default function Home() {
             <TabsTrigger value="active" className="flex-1">
               <CheckCircle2 className="h-4 w-4 mr-2" />
               Active Polls
-              {filteredActive.length > 0 && (
-                <Badge className="ml-2 bg-primary/10 text-primary hover:bg-primary/20 border-0">
-                  {filteredActive.length}
-                </Badge>
-              )}
+              <PollCount count={activeCount} />
             </TabsTrigger>
             <TabsTrigger value="inactive" className="flex-1">
               <Clock className="h-4 w-4 mr-2" />
               Inactive Polls
-              {filteredInactive.length > 0 && (
-                <Badge className="ml-2 bg-primary/10 text-primary hover:bg-primary/20 border-0">
-                  {filteredInactive.length}
-                </Badge>
-              )}
+              <PollCount count={inactiveCount} />
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="active" className="space-y-4">
-            {filteredActive.length === 0 ? (
-              <EmptyState type="active" isSignedIn={isSignedIn} />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredActive.map(poll => (
-                  <PollCard key={poll._id} poll={poll} />
-                ))}
-              </div>
-            )}
+            <PollsList polls={filteredActive} emptyStateType="active" />
           </TabsContent>
 
           <TabsContent value="inactive" className="space-y-4">
-            {filteredInactive.length === 0 ? (
-              <EmptyState type="inactive" isSignedIn={isSignedIn} />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredInactive.map(poll => (
-                  <PollCard key={poll._id} poll={poll} />
-                ))}
-              </div>
-            )}
+            <PollsList polls={filteredInactive} emptyStateType="inactive" />
           </TabsContent>
         </Tabs>
       </div>

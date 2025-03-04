@@ -1,6 +1,6 @@
-import { notFound } from 'next/navigation';
+import {notFound} from "next/navigation";
 
-import { Poll } from '@/components/poll/Poll';
+import Poll from "@/components/poll/Poll";
 
 import type {Id} from "../../../../convex/_generated/dataModel";
 
@@ -11,11 +11,7 @@ interface PollPageProps {
 }
 
 export default function PollPage({params: {pollId}}: PollPageProps) {
-  console.log(pollId);
-
-  if (!pollId) {
-    notFound();
-  }
+  if (!pollId) throw notFound();
 
   return (
     <main className="container mx-auto py-10">

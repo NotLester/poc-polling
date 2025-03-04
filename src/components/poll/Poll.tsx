@@ -4,7 +4,7 @@ import { useMutation, useQuery } from 'convex/react';
 import {
     BarChart3, CheckCircle2, Eye, EyeOff, LucideCheck, Settings, Share2, UserCheck, Vote
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import QRCode from 'react-qr-code';
 
 import {
@@ -20,8 +20,8 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from '@/components/ui/use-toast';
-import { useUser } from '@/hooks/useUser';
 import { cn } from '@/lib/utils';
+import { useUser } from '@clerk/nextjs';
 
 import { api } from '../../../convex/_generated/api';
 
@@ -31,7 +31,7 @@ interface PollProps {
   pollId: Id<"polls">;
 }
 
-export function Poll({pollId}: PollProps) {
+export default function Poll({pollId}: PollProps) {
   const {isSignedIn, user} = useUser();
 
   const poll = useQuery(api.polls.getPollDetails, {pollId});
@@ -41,17 +41,9 @@ export function Poll({pollId}: PollProps) {
   const updateStatus = useMutation(api.polls.updateQuestionStatus);
 
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-  const [pageUrl, setPageUrl] = useState("");
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("vote");
+  const [activeTab, setActiveTab] = useState<"vote" | "manage">("vote");
   const [isHovering, setIsHovering] = useState<Record<string, boolean>>({});
-
-  // Set the page URL for QR code once the component mounts on client side
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setPageUrl(window.location.href);
-    }
-  }, []);
 
   if (!poll) {
     return (
@@ -94,8 +86,7 @@ export function Poll({pollId}: PollProps) {
 
   // Calculate vote percentage for an option
   const getVotePercentage = (votes: number, totalVotes: number) => {
-    if (totalVotes === 0) return 0;
-    return (votes / totalVotes) * 100;
+    return totalVotes === 0 ? 0 : (votes / totalVotes) * 100;
   };
 
   const handleVote = async (questionId: Id<"pollQuestions">) => {
@@ -192,7 +183,7 @@ export function Poll({pollId}: PollProps) {
   };
 
   // Determine if user has voted on all questions
-  const hasVotedOnAll = poll.questions.every(q => !selectedOptions[q._id]);
+  const hasVotedOnAll = poll.questions.every(question => !selectedOptions[question._id]);
 
   // Get color by percentage
   const getColorByPercentage = (percentage: number) => {
@@ -204,6 +195,7 @@ export function Poll({pollId}: PollProps) {
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-lg border-t-4 border-t-primary bg-white">
+      {/*  */}
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
@@ -240,25 +232,6 @@ export function Poll({pollId}: PollProps) {
           </div>
           {isPollCreator && (
             <div className="flex items-center space-x-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center space-x-2 bg-slate-100 p-2 rounded-md">
-                      <span className="text-sm font-medium">
-                        {isPollActive ? "Active" : "Inactive"}
-                      </span>
-                      <Switch
-                        checked={isPollActive}
-                        onCheckedChange={handlePollStatusToggle}
-                        aria-label="Toggle poll status"
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {isPollActive ? "Deactivate poll" : "Activate poll"}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
               {isPollActive && (
                 <TooltipProvider>
                   <Tooltip>
@@ -277,13 +250,36 @@ export function Poll({pollId}: PollProps) {
                   </Tooltip>
                 </TooltipProvider>
               )}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center space-x-2 bg-slate-100 p-2 rounded-md">
+                      <Switch
+                        checked={isPollActive}
+                        onCheckedChange={handlePollStatusToggle}
+                        aria-label="Toggle poll status"
+                      />
+                      <span className="text-sm font-medium">
+                        {isPollActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isPollActive ? "Deactivate poll" : "Activate poll"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           )}
         </div>
       </CardHeader>
       <CardContent className="pt-4">
         {isPollCreator && (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <Tabs
+            value={activeTab}
+            onValueChange={() => setActiveTab(prev => (prev === "manage" ? "vote" : "manage"))}
+            className="mb-6"
+          >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="vote" className="flex items-center gap-1">
                 <Vote size={16} />
@@ -542,6 +538,7 @@ export function Poll({pollId}: PollProps) {
         )}
       </CardContent>
 
+      {/* QR Code DialogBox */}
       <AlertDialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -553,13 +550,13 @@ export function Poll({pollId}: PollProps) {
           <div className="flex justify-center my-4">
             <div className="p-6 bg-white rounded-lg shadow-sm flex flex-col items-center justify-center gap-6 border">
               <div className="bg-white p-3 rounded-lg shadow border">
-                <QRCode value={pageUrl} size={220} level="H" className="max-w-full" />
+                <QRCode value={window.location.href} size={220} level="H" className="max-w-full" />
               </div>
               <div className="w-full">
                 <p className="text-xs text-muted-foreground mb-1">Poll URL:</p>
                 <div className="flex items-center gap-2">
                   <div className="bg-slate-50 p-2 rounded-md text-sm overflow-hidden text-ellipsis w-full border">
-                    {pageUrl}
+                    {window.location.href}
                   </div>
                   <TooltipProvider>
                     <Tooltip>
@@ -568,7 +565,7 @@ export function Poll({pollId}: PollProps) {
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            navigator.clipboard.writeText(pageUrl);
+                            navigator.clipboard.writeText(window.location.href);
                             toast({
                               title: "URL Copied",
                               description: "Poll URL has been copied to clipboard",

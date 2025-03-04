@@ -1,24 +1,31 @@
 "use client";
 
-import { LogOut, Palette, Plus, User as UserIcon } from 'lucide-react';
-import { useTheme } from 'next-themes';
-import { useRouter } from 'next/navigation';
+import {LogOut, Palette, Plus, User as UserIcon} from "lucide-react";
+import {useTheme} from "next-themes";
+import Link from "next/link";
 
-import { useClerk, useUser } from '@clerk/nextjs';
+import {useClerk} from "@clerk/nextjs";
 
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Button } from '../ui/button';
+import {Avatar, AvatarFallback, AvatarImage} from "../ui/avatar";
+import {Button} from "../ui/button";
 import {
-    DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup,
-    DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub,
-    DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger
-} from '../ui/dropdown-menu';
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
-const UserDropdown = () => {
-  const router = useRouter();
-  const { signOut } = useClerk();
-  const { user } = useUser();
-  const { theme, setTheme } = useTheme();
+const UserDropdown: React.FC = () => {
+  const {signOut, user} = useClerk();
+  const {theme, setTheme} = useTheme();
 
   if (!user) return null;
 
@@ -39,9 +46,7 @@ const UserDropdown = () => {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">
-              {user.fullName || user.username}
-            </p>
+            <p className="text-sm font-medium leading-none">{user.fullName || user.username}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.primaryEmailAddress?.emailAddress}
             </p>
@@ -51,15 +56,19 @@ const UserDropdown = () => {
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => router.push(`/profile`)}>
-            <UserIcon className="mr-2 h-4 w-4" />
-            Profile
-          </DropdownMenuItem>
+          <Link href="/profile">
+            <DropdownMenuItem>
+              <UserIcon className="mr-2 h-4 w-4" />
+              Profile
+            </DropdownMenuItem>
+          </Link>
 
-          <DropdownMenuItem onClick={() => router.push("/create-poll")}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Poll
-          </DropdownMenuItem>
+          <Link href="/create">
+            <DropdownMenuItem>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Poll
+            </DropdownMenuItem>
+          </Link>
         </DropdownMenuGroup>
 
         <DropdownMenuSub>
@@ -75,10 +84,7 @@ const UserDropdown = () => {
               >
                 Light
               </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={theme === "dark"}
-                onClick={() => setTheme("dark")}
-              >
+              <DropdownMenuCheckboxItem checked={theme === "dark"} onClick={() => setTheme("dark")}>
                 Dark
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
